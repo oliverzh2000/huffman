@@ -1,36 +1,37 @@
 import java.io.*;
-import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.util.*;
 
 /**
+ * Defines compress and uncompress static methods for Huffman encoding.
+ *
  * @author Oliver on 11/13/2017
  */
 public class Huffman {
-    private static HashMap<Character, Integer> getFreqTable(char[] chars) {
-        HashMap<Character, Integer> freqTable = new HashMap<>();
-        char[] charsCopy = Arrays.copyOf(chars, chars.length);
-        Arrays.sort(charsCopy);
-        char prevChar = charsCopy[0];
+    // Returns a mapping from each unique symbol to its count.
+    private static HashMap<Byte, Integer> getFreqTable(byte[] symbols) {
+        HashMap<Byte, Integer> freqTable = new HashMap<>();
+        byte[] symbolsCopy = Arrays.copyOf(symbols, symbols.length);
+        Arrays.sort(symbolsCopy);
+        byte prevSymbol = symbolsCopy[0];
         int freq = 0;
-        for (char ch : charsCopy) {
-            if (ch == prevChar) {
+        for (byte symbol : symbolsCopy) {
+            if (symbol == prevSymbol) {
                 freq++;
             } else {
-                freqTable.put(prevChar, freq);
+                freqTable.put(prevSymbol, freq);
                 freq = 1;
-                prevChar = ch;
+                prevSymbol = symbol;
             }
         }
-        freqTable.put(prevChar, freq);
+        freqTable.put(prevSymbol, freq);
         return freqTable;
     }
 
-    /**
-     * Returns the topmost {@code Node} of the Huffman tree generated from the given {@code String}.
-     */
-    private static Node getHuffmanTree(HashMap<Character, Integer> freqTable) {
+    // Returns the parent node of the Huffman tree.
+    private static Node getHuffmanTree(HashMap<Byte, Integer> freqTable) {
         PriorityQueue<Node> huffmanForest = new PriorityQueue<>();
-        for (Map.Entry<Character, Integer> entry : freqTable.entrySet()) {
+        for (Map.Entry<Byte, Integer> entry : freqTable.entrySet()) {
             huffmanForest.add(new Node(entry.getKey(), entry.getValue()));
         }
         while (huffmanForest.size() > 1) {
@@ -39,88 +40,31 @@ public class Huffman {
         return huffmanForest.poll();
     }
 
-//    /**
-//     * Returns a mapping from the {@code Character} of each terminal {@code Node} in the given huffman tree
-//     * to its codeword. The codeword of each {@code Node} is determined by the
-//     * path taken to reach it from the root of the huffman tree.
-//     *
-//     * @param huffmanTree the Huffman tree
-//     * @return the mapping from each {@code Character} to its codeword
-//     */
-//    public static HashMap<Character, boolean[]> getSymbolTable(Node huffmanTree) {
-//        HashMap<Character, String> codewordStrings = new HashMap<>();
-//        populateSymbolTable(codewordStrings, huffmanTree, "");
-//        HashMap<Character, boolean[]> codeWordBooleanArrays = new HashMap<>();
-//        for (Map.Entry<Character, String> entry : codewordStrings.entrySet()) {
-//            boolean[] codewordArray = new boolean[entry.getValue().length()];
-//            char[] codeword = entry.getValue().toCharArray();
-//            for (int i = 0; i < codeword.length; i++) {
-//                codewordArray[i] = (codeword[i] == '1');
-//            }
-//            codeWordBooleanArrays.put(entry.getKey(), codewordArray);
-//        }
-//        return codeWordBooleanArrays;
-//    }
-
-    private static HashMap<Character, String> getSymbolTableString(Node huffmanTree) {
-        HashMap<Character, String> codewords = new HashMap<>();
-        populateSymbolTable(codewords, huffmanTree, "");
+    // Returns a mapping from each symbol in the Huffman Tree
+    // to its codeword represented by a string of '1' and '0'.
+    private static HashMap<Byte, String> getCodewords(Node huffmanTree) {
+        HashMap<Byte, String> codewords = new HashMap<>();
+        getCodewordsHelper(codewords, huffmanTree, "");
         return codewords;
     }
 
-    // Recursively populate the given symbol_table with all symbols and their corresponding codeword strings.
-    private static void populateSymbolTable(HashMap<Character, String> symbolTable,
-                                            Node node, String codeword) {
+    // Recursively populate the given symbol_table with all symbols and their corresponding encoding strings.
+    private static void getCodewordsHelper(HashMap<Byte, String> symbolTable,
+                                           Node node, String codeword) {
         if (node.isTerminal()) {
-            symbolTable.put(node.character, codeword);
+            symbolTable.put(node.symbol, codeword);
         } else {
-            populateSymbolTable(symbolTable, node.childLeft, codeword + '0');
-            populateSymbolTable(symbolTable, node.childRight, codeword + '1');
+            getCodewordsHelper(symbolTable, node.childLeft, codeword + '0');
+            getCodewordsHelper(symbolTable, node.childRight, codeword + '1');
         }
     }
 
-    //    public static char[] getDecodedChars(BitSet encodedBits, int nEncodedBits, int nDecodedChars, Node huffmanTree) {
-//        int nTrailingZeroes = nEncodedBits - encodedBits.length();
-//        char[] decodedChars = new char[nDecodedChars];
-//        for (int charIndex = 0, bitIndex = 0; charIndex < decodedChars.length && bitIndex < nEncodedBits; charIndex++) {
-//            Node currentNode = huffmanTree;
-//            while (!currentNode.isTerminal()) {
-//                if (encodedBits.get(bitIndex)) {
-//                    currentNode = currentNode.childRight;
-//                } else {
-//                    currentNode = currentNode.childLeft;
-//                }
-//                bitIndex++;
-//            }
-//            decodedChars[charIndex] = currentNode.character;
-//        }
-//        return decodedChars;
-//    }
-
-//    /**
-//     * Returns a {@code long[]} representing the bits from encoding the given string with the given symbol table.
-//     *
-//     * @param chars the {@code char[]} to encode
-//     * @return the encoded bits
-//     */
-//    public static BitSet getEncodedBits(char[] chars, HashMap<Character, boolean[]> symbolTable) {
-//        BitSet encodedBits = new BitSet();
-//        int encodedBitsIndex = 0;
-//        for (char character : chars) {
-//            boolean[] codeword = symbolTable.get(character);
-//            for (boolean codewordBit : codeword) {
-//                encodedBits.set(encodedBitsIndex, codewordBit);
-//                encodedBitsIndex++;
-//            }
-//        }
-//        return encodedBits;
-//    }
-
-    private static BitSet getEncodedBits(char[] chars, HashMap<Character, String> symbolTable) {
+    // Returns the bits resulting from encoding all symbols. Trailing zeroes are ignored.
+    private static BitSet getEncodedBits(byte[] symbols, HashMap<Byte, String> codewords) {
         BitSet encodedBits = new BitSet();
         int encodedBitsIndex = 0;
-        for (char character : chars) {
-            String codeword = symbolTable.get(character);
+        for (byte symbol : symbols) {
+            String codeword = codewords.get(symbol);
             for (int i = 0; i < codeword.length(); i++) {
                 if (codeword.charAt(i) == '1')
                     encodedBits.set(encodedBitsIndex);
@@ -130,13 +74,16 @@ public class Huffman {
         return encodedBits;
     }
 
-
-    private static char[] getDecodedChars(BitSet encodedBits, int nEncodedBits,
-                                         HashMap<Character, Integer> freqTable,
-                                         Node huffmanTree) {
-        int nDecodedChars = freqTable.values().stream().reduce(0, (freq, sum) -> freq + sum);
-        char[] decodedChars = new char[nDecodedChars];
-        for (int charIndex = 0, bitIndex = 0; charIndex < decodedChars.length && bitIndex < nEncodedBits; charIndex++) {
+    // Returns the symbols resulting from decoding all bits.
+    // nEncodedBits accounts for the trailing zeroes that were ignored by the BitSet.
+    private static byte[] getDecodedBytes(BitSet encodedBits, int nEncodedBits,
+                                          HashMap<Byte, Integer> freqTable,
+                                          Node huffmanTree) {
+        int nDecodedBytes = 0;
+        for (int freq : freqTable.values())
+            nDecodedBytes += freq;
+        byte[] decodedBytes = new byte[nDecodedBytes];
+        for (int byteIndex = 0, bitIndex = 0; byteIndex < nDecodedBytes && bitIndex < nEncodedBits; byteIndex++) {
             Node currentNode = huffmanTree;
             while (!currentNode.isTerminal()) {
                 if (encodedBits.get(bitIndex)) {
@@ -146,116 +93,36 @@ public class Huffman {
                 }
                 bitIndex++;
             }
-            decodedChars[charIndex] = currentNode.character;
+            decodedBytes[byteIndex] = currentNode.symbol;
         }
-        return decodedChars;
+        return decodedBytes;
     }
 
-//    /**
-//     * Returns the true number of encoded bits from the given frequency and symbol table,
-//     * by accounting for the trailing zeroes that the BitSet does not store.
-//     *
-//     * @param freqTable   the frequency table
-//     * @param symbolTable the symbol table
-//     * @return the number of bits in the resulting encoding
-//     */
-//    public static int getEncodedBitsLength(HashMap<Character, Integer> freqTable,
-//                                           HashMap<Character, boolean[]> symbolTable) {
-//        int nEncodedBits = 0;
-//        for (char character : freqTable.keySet()) {
-//            nEncodedBits += symbolTable.get(character).length * freqTable.get(character);
-//        }
-//        return nEncodedBits;
-//    }
-
-    private static int getEncodedBitsLength(HashMap<Character, Integer> freqTable,
-                                           HashMap<Character, String> symbolTable) {
+    // Returns the true number of bits resulting from encoding all symbols. Accounts for trailing zeroes.
+    private static int getNEncodedBits(HashMap<Byte, Integer> freqTable,
+                                       HashMap<Byte, String> symbolTable) {
         int nEncodedBits = 0;
-        for (char character : freqTable.keySet()) {
-            nEncodedBits += symbolTable.get(character).length() * freqTable.get(character);
+        for (byte symbol : freqTable.keySet()) {
+            nEncodedBits += symbolTable.get(symbol).length() * freqTable.get(symbol);
         }
         return nEncodedBits;
     }
 
     /**
-     * Compress (enocode) the contents of the file located at {@code inFilename}
-     * and write the results to the file located at {@code outFilename}.
+     * Compresses the file at {@code inPath} and stores the result into a new file
+     * with extension '.huffman'.
      *
-     * @param inFilename the path of the input file
+     * @param inPath the path of the file to be compressed
+     * @throws IOException if an error occurs during file IO
      */
-    public static void compressFile(String inFilename) throws IOException {
+    public static void compressFile(String inPath) throws IOException {
         long start = System.nanoTime();
-        File inFile = new File(inFilename);
-        FileReader fileReader = new FileReader(inFilename);
-        char[] inChars = new char[(int) inFile.length()];
-        int nCharsRead = fileReader.read(inChars);
-        inChars = Arrays.copyOfRange(inChars, 0, nCharsRead);  // Trim the chars of any empty bytes.
-        fileReader.close();
-        System.out.println("read file " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        HashMap<Character, Integer> freqTable = getFreqTable(inChars);
-        System.out.println("freq table " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        Node huffmanTree = getHuffmanTree(freqTable);
-        System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        HashMap<Character, String> symbolTable = getSymbolTableString(huffmanTree);
-        System.out.println("symbol table string " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        BitSet encodedBits = getEncodedBits(inChars, symbolTable);
-        System.out.println("encoded bits " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        ByteBuffer header = ByteBuffer.allocate(8 + freqTable.size() * 6);
-        // File header consists of:
-        // (int) x 1 - number of encoded bits, (int) x 1 - number of symbols,
-        // (char, int) x (number of symbols) - symbol and frequency pairs.
-        header.putInt(getEncodedBitsLength(freqTable, symbolTable));
-        header.putInt(freqTable.size());
-        freqTable.forEach((character, freq) -> {
-            header.putChar(character);
-            header.putInt(freq);
-        });
-        System.out.println("header " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + ".huffman";
-        FileOutputStream fileOutputStream = new FileOutputStream(outFilename);
-        fileOutputStream.write(header.array());
-        fileOutputStream.write(encodedBits.toByteArray());
-        fileOutputStream.close();
-        System.out.println("write file " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-//        System.out.println(freqTable);
-//        StringBuilder s = new StringBuilder();
-//        for (int i = 0; i < encodedBits.length(); i++)
-//            s.append(encodedBits.get(i) ? 1 : 0);
-//
-//        System.out.println(getEncodedBitsLength(freqTable, symbolTable));
-//        System.out.println(encodedBits.length() + " " + freqTable.size());
-//        System.out.println(s);
-//        System.out.println(Arrays.toString(encodedBits.toByteArray()));
-//        System.out.println(encodedBits.length());
-    }
-
-    public static void compressFileSerial(String inFilename) throws IOException{
-        long start = System.nanoTime();
-        File inFile = new File(inFilename);
-        FileReader fileReader = new FileReader(inFilename);
-        char[] inChars = new char[(int) inFile.length()];
-        int nCharsRead = fileReader.read(inChars);
-        inChars = Arrays.copyOfRange(inChars, 0, nCharsRead);  // Trim the chars of any empty bytes.
-        fileReader.close();
-
+        File inFile = new File(inPath);
+        byte[] inBytes = Files.readAllBytes(inFile.toPath());
         System.out.println("read file " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
-        HashMap<Character, Integer> freqTable = getFreqTable(inChars);
+        HashMap<Byte, Integer> freqTable = getFreqTable(inBytes);
         System.out.println("freq table " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
@@ -263,176 +130,157 @@ public class Huffman {
         System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
-        HashMap<Character, String> symbolTable = getSymbolTableString(huffmanTree);
+        HashMap<Byte, String> symbolTable = getCodewords(huffmanTree);
         System.out.println("symbol table " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
-        BitSet encodedBits = getEncodedBits(inChars, symbolTable);
-        System.out.println("encoded bits " + (System.nanoTime() - start) / 1000000 + "ms");
+        BitSet encodedBits = getEncodedBits(inBytes, symbolTable);
+        System.out.println("encode " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + ".huffman";
-        ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream(outFilename));
-        objectOutputStream.writeInt(getEncodedBitsLength(freqTable, symbolTable));
-        objectOutputStream.writeObject(freqTable);
-        objectOutputStream.writeObject(encodedBits);
+        String outFilename = inPath.substring(0, inPath.lastIndexOf('.')) + ".huffman";
+        DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(outFilename));
+        dataOutputStream.writeInt(getNEncodedBits(freqTable, symbolTable));
+        dataOutputStream.writeInt(freqTable.size());
+        for (Map.Entry<Byte, Integer> entry : freqTable.entrySet()) {
+            dataOutputStream.writeByte(entry.getKey());
+            dataOutputStream.writeInt(entry.getValue());
+        }
+        dataOutputStream.write(encodedBits.toByteArray());
+        dataOutputStream.close();
         System.out.println("write file " + (System.nanoTime() - start) / 1000000 + "ms");
     }
 
     /**
-     * Compress (enocode) the contents of the file located at {@code inFilename}
-     * and write the results to the file located at {@code outFilename}.
+     * Uncompresses the file at {@code inPath} and stores the result into a new file
+     * with extension '.txt'.
      *
-     * @param inFilename the path of the input file
+     * @param inPath the path of the file to be uncompressed
+     * @throws IOException if an error occurs during file IO
      */
-    public static void uncompressFile(String inFilename) throws IOException {
+    public static void uncompressFile(String inPath) throws IOException {
         long start = System.nanoTime();
-        File file = new File(inFilename);
-        FileInputStream fileInputStream = new FileInputStream(inFilename);
+        DataInputStream dataInputStream = new DataInputStream(new FileInputStream(inPath));
 
-        byte[] headerBytes = new byte[8];
-        fileInputStream.read(headerBytes);
-        ByteBuffer headerBuffer = ByteBuffer.wrap(headerBytes);
-        int nEncodedBits = headerBuffer.getInt();
-        int nSymbols = headerBuffer.getInt();
-        System.out.println("read header " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        // Each [(char) symbol, (int) freq] pair is 2 + 4 = 6 bytes.
-        byte[] freqTableBytes = new byte[nSymbols * 6];
-        fileInputStream.read(freqTableBytes);
-        ByteBuffer freqTableBuffer = ByteBuffer.wrap(freqTableBytes);
-        HashMap<Character, Integer> freqTable = new HashMap<>();
-        for (int i = 8; i < 8 + nSymbols * 6; i += 6)
-            freqTable.put(freqTableBuffer.getChar(), freqTableBuffer.getInt());
-        System.out.println("freq table " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-        Node huffmanTree = getHuffmanTree(freqTable);
-        System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-        byte[] encodedBytes = new byte[(int) Math.ceil(nEncodedBits / 8.0)];
-        fileInputStream.read(encodedBytes);
+        int nEncodedBits = dataInputStream.readInt();
+        int nSymbols = dataInputStream.readInt();
+        HashMap<Byte, Integer> freqTable = new HashMap<>();
+        for (int i = 0; i < nSymbols; i++) {
+            freqTable.put(dataInputStream.readByte(), dataInputStream.readInt());
+        }
+        byte[] encodedBytes = new byte[nEncodedBits / 8 + nEncodedBits % 8];
+        dataInputStream.read(encodedBytes);
+        dataInputStream.close();
         BitSet encodedBits = BitSet.valueOf(encodedBytes);
-        System.out.println("read encoded bits " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-        char[] decodedChars = getDecodedChars(encodedBits, nEncodedBits, freqTable, huffmanTree);
-        fileInputStream.close();
-        System.out.println("decode " + (System.nanoTime() - start) / 1000000);
+        System.out.println("read and parse " + (System.nanoTime() - start) / 1000000 + "ms");
         start = System.nanoTime();
 
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + ".txt";
-        File Outfile = new File(outFilename);
-        FileWriter fileWriter = new FileWriter(Outfile);
-        fileWriter.write(decodedChars);
-        fileWriter.close();
-        System.out.println("write file " + (System.nanoTime() - start) / 1000000);
-        start = System.nanoTime();
-
-//        System.out.println(nEncodedBits + " " + nSymbols);
-//        System.out.println(freqTable);
-//        System.out.println(encodedBits.length() + " " + freqTable.size());
-//        StringBuilder s = new StringBuilder();
-//        for (int i = 0; i < encodedBits.length(); i++)
-//            s.append(encodedBits.get(i) ? 1 : 0);
-//        System.out.println(s);
-//        System.out.println(Arrays.toString(encodedBits.toByteArray()));
-//        System.out.println(encodedBits.length());
-//        System.out.println(Arrays.toString(decodedChars));
-    }
-
-    public static void uncompressFileSerial(String inFilename) throws IOException, ClassNotFoundException {
-        long start = System.nanoTime();
-        File file = new File(inFilename);
-        ObjectInputStream objectInputStream = new ObjectInputStream(new FileInputStream(inFilename));
-
-        int nEncodedBits = objectInputStream.readInt();
-        @SuppressWarnings("unchecked")
-        HashMap<Character, Integer> freqTable = (HashMap) objectInputStream.readObject();
-        BitSet encodedBits = (BitSet) objectInputStream.readObject();
-
-        System.out.println("read file " + (System.nanoTime() - start) / 1000000 + "ms"); start = System.nanoTime();
         Node huffmanTree = getHuffmanTree(freqTable);
+        System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000 + "ms");
+        start = System.nanoTime();
 
-        char[] decodedChars = getDecodedChars(encodedBits, nEncodedBits, freqTable, huffmanTree);
-        System.out.println("decoded chars " + (System.nanoTime() - start) / 1000000 + "ms"); start = System.nanoTime();
+        byte[] decodedBytes = getDecodedBytes(encodedBits, nEncodedBits, freqTable, huffmanTree);
+        System.out.println("decode " + (System.nanoTime() - start) / 1000000 + "ms");
+        start = System.nanoTime();
 
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + ".txt";
-        File Outfile = new File(outFilename);
-        FileWriter fileWriter = new FileWriter(Outfile);
-        fileWriter.write(decodedChars);
-        fileWriter.close();
+        String outFilename = inPath.substring(0, inPath.lastIndexOf('.')) + ".txt";
+        File outFile = new File(outFilename);
+        Files.write(outFile.toPath(), decodedBytes);
         System.out.println("write file " + (System.nanoTime() - start) / 1000000 + "ms");
-
-//        System.out.println(nEncodedBits + " " + nSymbols);
-//        System.out.println(freqTable);
-//        System.out.println(encodedBits.length() + " " + freqTable.size());
-//        StringBuilder s = new StringBuilder();
-//        for (int i = 0; i < encodedBits.length(); i++)
-//            s.append(encodedBits.get(i) ? 1 : 0);
-//        System.out.println(s);
-//        System.out.println(Arrays.toString(encodedBits.toByteArray()));
-//        System.out.println(encodedBits.length());
-//        System.out.println(Arrays.toString(decodedChars));
     }
 
-    public static void main(String[] args) throws IOException, ClassNotFoundException {
+    /**
+     * Command line client for compressing and uncompressing.
+     *
+     * @param args specifies compress/uncompress and the file to use.
+     * @throws IOException if an error occurs during file IO.
+     */
+    public static void main(String[] args) throws IOException {
         if (args.length == 2) {
             if (args[0].equals("compress")) {
-                compressFileSerial(args[1]);
+                compressFile(args[1]);
+                return;
             } else if (args[0].equals("uncompress")) {
-                uncompressFileSerial(args[1]);
+                uncompressFile(args[1]);
+                return;
             }
         }
-//        Huffman.compressFileSerial("C:\\Users\\Oliver\\IdeaProjects\\Huffman\\src\\war_and_peace.txt");
-//        Huffman.uncompressFileSerial("C:\\Users\\Oliver\\IdeaProjects\\Huffman\\src\\war_and_peace.huffman");
+        System.out.println("Usage: java Huffman ('compress'/'uncompress') (filepath)");
     }
 }
+
+/**
+ * Implements a simple binary tree structure.
+ */
 class Node implements Comparable<Node> {
     int freq;
-    char character;
+    byte symbol;
     Node childLeft, childRight;
 
-    public Node(char character, int freq, Node childLeft, Node childRight) {
+    /**
+     * Instantiates a new terminal {@code Node} given symbol and frequency.
+     *
+     * @param symbol the symbol
+     * @param freq   the frequency
+     */
+    Node(byte symbol, int freq) {
+        this(symbol, freq, null, null);
+    }
+
+    private Node(int freq, Node childLeft, Node childRight) {
+        this((byte) 0, freq, childLeft, childRight);
+    }
+
+    private Node(byte symbol, int freq, Node childLeft, Node childRight) {
         this.freq = freq;
-        this.character = character;
+        this.symbol = symbol;
         this.childLeft = childLeft;
         this.childRight = childRight;
     }
 
-
-
-    public Node(char character, int freq) {
-        this(character, freq, null, null);
+    /**
+     * Print the tree at the given root {@code Node}.
+     *
+     * @param node the root node
+     */
+    static void printTree(Node node) {
+        printTreeHelper(node, 0);
     }
 
-    public Node(int freq, Node childLeft, Node childRight) {
-        this('\u0000', freq, childLeft, childRight);
-    }
-
-    public static void printTree(Node node, int indent) {
-        if (node.character != 0) {
-            System.out.println(String.join("", Collections.nCopies(indent, "    ")) + node.freq + ": " + node.character);
+    // Recursively print the given Node and all its children using an inorder traversal and with visual indent.
+    private static void printTreeHelper(Node node, int indent) {
+        if (node.symbol != 0) {
+            System.out.println(String.join("", Collections.nCopies(indent, "    ")) + node.freq + ": " + node.symbol);
         } else {
             if (node.childLeft != null) {
-                printTree(node.childLeft, indent + 1);
+                printTreeHelper(node.childLeft, indent + 1);
             }
             System.out.println(String.join("", Collections.nCopies(indent, "    ")) + node.freq);
             if (node.childRight != null) {
-                printTree(node.childRight, indent + 1);
+                printTreeHelper(node.childRight, indent + 1);
             }
         }
     }
 
-    public boolean isTerminal() {
+    /**
+     * Returns true is the {@code Node} has no children. Otherwise false.
+     */
+    boolean isTerminal() {
         return childLeft == null && childRight == null;
     }
 
-    public int compareTo(Node other) {
-        return this.freq - other.freq;
+    /**
+     * Returns a new parent {@code Node} which contains the given children,
+     * has a freq that is the sum of its children, and no symbol.
+     *
+     * @param that other {@code Node} to be combined with
+     * @return combined {@code Node}
+     */
+    Node combineWith(Node that) {
+        return new Node(this.freq + that.freq, this, that);
     }
 
-    public Node combineWith(Node other) {
-        return new Node(this.freq + other.freq, this, other);
+    public int compareTo(Node that) {
+        return this.freq - that.freq;
     }
 }
