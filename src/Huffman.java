@@ -119,24 +119,11 @@ public class Huffman {
         long start = System.nanoTime();
         File inFile = new File(inPath);
         byte[] inBytes = Files.readAllBytes(inFile.toPath());
-        System.out.println("read file " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
 
         HashMap<Byte, Integer> freqTable = getFreqTable(inBytes);
-        System.out.println("freq table " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
-
         Node huffmanTree = getHuffmanTree(freqTable);
-        System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
-
         HashMap<Byte, String> symbolTable = getCodewords(huffmanTree);
-        System.out.println("symbol table " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
-
         BitSet encodedBits = getEncodedBits(inBytes, symbolTable);
-        System.out.println("encode " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
 
         String outFilename = inPath.substring(0, inPath.lastIndexOf('.')) + ".huffman";
         DataOutputStream dataOutputStream = new DataOutputStream(new FileOutputStream(outFilename));
@@ -148,7 +135,6 @@ public class Huffman {
         }
         dataOutputStream.write(encodedBits.toByteArray());
         dataOutputStream.close();
-        System.out.println("write file " + (System.nanoTime() - start) / 1000000 + "ms");
     }
 
     /**
@@ -172,21 +158,13 @@ public class Huffman {
         dataInputStream.read(encodedBytes);
         dataInputStream.close();
         BitSet encodedBits = BitSet.valueOf(encodedBytes);
-        System.out.println("read and parse " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
 
         Node huffmanTree = getHuffmanTree(freqTable);
-        System.out.println("huffman tree " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
-
         byte[] decodedBytes = getDecodedBytes(encodedBits, nEncodedBits, freqTable, huffmanTree);
-        System.out.println("decode " + (System.nanoTime() - start) / 1000000 + "ms");
-        start = System.nanoTime();
 
         String outFilename = inPath.substring(0, inPath.lastIndexOf('.')) + ".txt";
         File outFile = new File(outFilename);
         Files.write(outFile.toPath(), decodedBytes);
-        System.out.println("write file " + (System.nanoTime() - start) / 1000000 + "ms");
     }
 
     /**
