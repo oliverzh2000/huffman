@@ -109,13 +109,13 @@ public class Huffman {
     }
 
     /**
-     * Compresses the file at {@code inPath} and stores the result into a new file
+     * Encodes the file at {@code inPath} and stores the result into a new file
      * with extension '.huffman'.
      *
-     * @param inPath the path of the file to be compressed
+     * @param inPath the path of the file to be encoded
      * @throws IOException if an error occurs during file IO
      */
-    public static void compressFile(String inPath) throws IOException {
+    public static void encodeFile(String inPath) throws IOException {
         long start = System.nanoTime();
         File inFile = new File(inPath);
         byte[] inBytes = Files.readAllBytes(inFile.toPath());
@@ -138,13 +138,13 @@ public class Huffman {
     }
 
     /**
-     * Uncompresses the file at {@code inPath} and stores the result into a new file
+     * Decodes the file at {@code inPath} and stores the result into a new file
      * with extension '.txt'.
      *
-     * @param inPath the path of the file to be uncompressed
+     * @param inPath the path of the file to be decoded
      * @throws IOException if an error occurs during file IO
      */
-    public static void uncompressFile(String inPath) throws IOException {
+    public static void decodeFile(String inPath) throws IOException {
         long start = System.nanoTime();
         DataInputStream dataInputStream = new DataInputStream(new FileInputStream(inPath));
 
@@ -175,15 +175,15 @@ public class Huffman {
      */
     public static void main(String[] args) throws IOException {
         if (args.length == 2) {
-            if (args[0].equals("compress")) {
-                compressFile(args[1]);
+            if (args[0].equals("encode")) {
+                encodeFile(args[1]);
                 return;
-            } else if (args[0].equals("uncompress")) {
-                uncompressFile(args[1]);
+            } else if (args[0].equals("decode")) {
+                decodeFile(args[1]);
                 return;
             }
         }
-        System.out.println("Usage: java Huffman ('compress'/'uncompress') (filepath)");
+        System.out.println("Usage: $ java Huffman ('encode'/'decode') (file path)");
     }
 }
 
@@ -196,7 +196,7 @@ class Node implements Comparable<Node> {
     Node childLeft, childRight;
 
     /**
-     * Instantiates a new terminal {@code Node} given symbol and frequency.
+     * Instantiates a new terminal {@code Node} with given symbol and frequency.
      *
      * @param symbol the symbol
      * @param freq   the frequency
