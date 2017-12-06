@@ -2,4 +2,4 @@
 
 ### Usage
 compile: javac Huffman.java  
-run: java Huffman ('compress'/'uncompress') (filepath)  
+run: java Huffman ('encode'/'decode') (filepath)
